@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Heading Outline",
+  "description": "Shows accessibility tree with heading structure (h1–h6) as screen readers see it. Finds sequence errors.",
+  "version": "2.0.0",
+  "permissions": ["storage", "debugger"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Heading Outline (click to toggle)",
+    "default_icon": {
+      "16": "icons/off-16.png",
+      "32": "icons/off-32.png",
+      "48": "icons/off-48.png"
+    }
+  }
+}
