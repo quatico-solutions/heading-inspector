@@ -1,0 +1,5 @@
+# Build artefact produced by scripts/build.sh
+heading-inspector-v*.zip
+
+# macOS
+.DS_Store
