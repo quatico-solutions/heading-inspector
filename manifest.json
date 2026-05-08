@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Heading Outline",
+  "name": "Heading Inspector",
   "description": "Shows accessibility tree with heading structure (h1–h6) as screen readers see it. Finds sequence errors.",
   "version": "2.0.0",
   "permissions": ["storage", "debugger"],
@@ -15,7 +15,7 @@
     }
   ],
   "action": {
-    "default_title": "Heading Outline (click to toggle)",
+    "default_title": "Heading Inspector (click to toggle)",
     "default_icon": {
       "16": "icons/off-16.png",
       "32": "icons/off-32.png",

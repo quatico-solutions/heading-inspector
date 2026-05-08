@@ -10,8 +10,8 @@ const ICON_PATHS = {
 function updateActionState(enabled) {
   chrome.action.setTitle({
     title: enabled
-      ? "Heading Outline: On (click to turn off)"
-      : "Heading Outline: Off (click to turn on)",
+      ? "Heading Inspector: On (click to turn off)"
+      : "Heading Inspector: Off (click to turn on)",
   });
   chrome.action.setIcon({
     path: enabled ? ICON_PATHS.on : ICON_PATHS.off,

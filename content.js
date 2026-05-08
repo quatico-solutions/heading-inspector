@@ -1,5 +1,5 @@
 /**
- * Heading Outline - shows accessibility tree as screen readers see it.
+ * Heading Inspector - shows accessibility tree as screen readers see it.
  * Uses AX tree from CDP: hierarchy + heading levels (h1–h6) for sequence validation.
  * Click entry to scroll to heading and highlight.
  */
@@ -219,7 +219,7 @@ h2 { font-weight: bold; font-size: 14px; }
 <body>
 <header>
 <button class="button-close" data-action="close">Close</button>
-<h2>Heading Outline</h2>
+<h2>Heading Inspector</h2>
 <p class="subtitle">Click to scroll to heading.</p>
 <ul class="legend"><li class="legend-item"><span class="legend-square" aria-hidden="true"></span> Correct order</li><li class="legend-item"><span class="legend-octagon" aria-hidden="true"></span> Sequence error</li></ul>
 </header>
