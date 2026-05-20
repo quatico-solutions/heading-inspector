@@ -6,6 +6,13 @@
 
 "use strict";
 
+// Injected on demand via chrome.scripting.executeScript (activeTab + scripting
+// permission model). Guard against re-execution: each toolbar click triggers
+// a re-injection, which would otherwise redeclare top-level const/let.
+(() => {
+  if (window.__headingInspectorLoaded) return;
+  window.__headingInspectorLoaded = true;
+
 const CONTAINER_ID = "a11y-heading-outline";
 const HIGHLIGHTER_ID = "a11y-heading-highlighter";
 
@@ -370,8 +377,7 @@ function ensureHighlighter() {
 function showPanel(html) {
   createPanel((doc) => {
     doc.querySelector('[data-action="close"]')?.addEventListener("click", () => {
-      chrome.storage.sync.set({ enabled: false });
-      chrome.runtime.sendMessage({ action: "syncIcon" }).catch(() => {});
+      chrome.runtime.sendMessage({ action: "panelHidden" }).catch(() => {});
       hide();
     });
 
@@ -455,15 +461,4 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-chrome.storage.sync.get("enabled", ({ enabled = false }) => {
-  if (!enabled) return;
-  // Show the panel immediately with a loading spinner
-  runDOM();
-  // Request the AX tree once the page has finished loading
-  const doRequest = () => chrome.runtime.sendMessage({ action: "requestTree" }).catch(() => {});
-  if (document.readyState === "complete") {
-    doRequest();
-  } else {
-    window.addEventListener("load", doRequest, { once: true });
-  }
-});
+})();

@@ -1,20 +1,31 @@
 /**
- * Background: fetches accessibility tree via CDP, toggles overlay via content script.
+ * Background service worker.
+ *
+ * Permission model: activeTab + scripting + debugger. The content script is
+ * injected on demand via chrome.scripting.executeScript when the user clicks
+ * the toolbar icon — no host_permissions, no broad content_scripts manifest
+ * entry. Each toolbar click is a user gesture that grants activeTab access
+ * to the current tab for the duration of this operation.
+ *
+ * The toggle state is derived from the DOM (probe for the panel container
+ * element) rather than persisted in chrome.storage, so the extension needs
+ * no storage permission and survives service-worker restarts cleanly.
  */
+
+const CONTAINER_ID = "a11y-heading-outline";
 
 const ICON_PATHS = {
   on: { 16: "icons/on-16.png", 32: "icons/on-32.png", 48: "icons/on-48.png" },
   off: { 16: "icons/off-16.png", 32: "icons/off-32.png", 48: "icons/off-48.png" },
 };
 
-function updateActionState(enabled) {
+function setTabIcon(tabId, enabled) {
+  chrome.action.setIcon({ tabId, path: enabled ? ICON_PATHS.on : ICON_PATHS.off });
   chrome.action.setTitle({
+    tabId,
     title: enabled
       ? "Heading Inspector: On (click to turn off)"
       : "Heading Inspector: Off (click to turn on)",
-  });
-  chrome.action.setIcon({
-    path: enabled ? ICON_PATHS.on : ICON_PATHS.off,
   });
 }
 
@@ -38,77 +49,63 @@ async function fetchAccessibilityTree(tabId) {
   }
 }
 
-chrome.action.onClicked.addListener(async () => {
-  const { enabled = false } = await chrome.storage.sync.get("enabled");
-  const next = !enabled;
-  await chrome.storage.sync.set({ enabled: next });
-  updateActionState(next);
+async function injectContentScript(tabId) {
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ["content.js"],
+  });
+}
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
+async function isPanelOpen(tabId) {
+  try {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (id) => !!document.getElementById(id),
+      args: [CONTAINER_ID],
+    });
+    return !!result;
+  } catch {
+    return false;
+  }
+}
 
-  if (next) {
-    // Show panel immediately with DOM-only headings, then refine with AX tree
-    chrome.tabs.sendMessage(tab.id, { action: "runDOM" }).catch(() => {});
-    try {
-      const nodes = await fetchAccessibilityTree(tab.id);
-      chrome.tabs.sendMessage(tab.id, { action: "run", axTree: nodes });
-    } catch (e) {
-      updateActionState(false);
-      await chrome.storage.sync.set({ enabled: false });
-      chrome.tabs.sendMessage(tab.id, { action: "error", message: e?.message || String(e) });
-    }
-  } else {
-    chrome.tabs.sendMessage(tab.id, { action: "hide" }).catch(() => {});
+chrome.action.onClicked.addListener(async (tab) => {
+  const tabId = tab?.id;
+  if (!tabId) return;
+
+  // chrome:// URLs, the Web Store, view-source:, and a few other origins
+  // cannot be scripted. Inject first so subsequent calls have the listener.
+  try {
+    await injectContentScript(tabId);
+  } catch (_) {
+    // Page is not scriptable; silently abort.
+    return;
+  }
+
+  if (await isPanelOpen(tabId)) {
+    chrome.tabs.sendMessage(tabId, { action: "hide" }).catch(() => {});
+    setTabIcon(tabId, false);
+    return;
+  }
+
+  setTabIcon(tabId, true);
+  chrome.tabs.sendMessage(tabId, { action: "runDOM" }).catch(() => {});
+
+  try {
+    const nodes = await fetchAccessibilityTree(tabId);
+    chrome.tabs.sendMessage(tabId, { action: "run", axTree: nodes }).catch(() => {});
+  } catch (e) {
+    setTabIcon(tabId, false);
+    chrome.tabs
+      .sendMessage(tabId, { action: "error", message: e?.message || String(e) })
+      .catch(() => {});
   }
 });
 
-chrome.storage.sync.get("enabled", ({ enabled = false }) => {
-  updateActionState(enabled);
-});
-
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync" && changes.enabled) {
-    updateActionState(changes.enabled.newValue);
-  }
-});
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender) => {
   if (!msg || typeof msg.action !== "string") return;
-  if (msg.action === "syncIcon") {
-    chrome.storage.sync.get("enabled", ({ enabled = false }) => {
-      updateActionState(enabled);
-      sendResponse();
-    });
-    return true;
-  }
-  if (msg.action === "requestTree") {
+  if (msg.action === "panelHidden") {
     const tabId = sender.tab?.id;
-    if (!tabId) {
-      sendResponse({ ok: false, error: "No tab" });
-      return;
-    }
-    fetchAccessibilityTree(tabId)
-      .then((nodes) => {
-        chrome.tabs.sendMessage(tabId, { action: "run", axTree: nodes });
-        sendResponse({ ok: true });
-      })
-      .catch((e) => {
-        chrome.tabs.sendMessage(tabId, { action: "error", message: e?.message || String(e) }).catch(() => {});
-        sendResponse({ ok: false, error: e?.message });
-      });
-    return true; // async
-  }
-  if (msg.action === "refreshTree") {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([t]) => {
-      if (t?.id) {
-        fetchAccessibilityTree(t.id)
-          .then((nodes) => sendResponse({ ok: true, nodes }))
-          .catch((e) => sendResponse({ ok: false, error: e?.message || String(e) }));
-      } else {
-        sendResponse({ ok: false, error: "No active tab" });
-      }
-    });
-    return true;
+    if (tabId) setTabIcon(tabId, false);
   }
 });

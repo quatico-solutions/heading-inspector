@@ -26,7 +26,8 @@ Built and maintained by [Quatico](https://www.quatico.com/) ·
 
 ## Usage
 
-- **Click the extension icon** to toggle the heading outline panel.
+- **Click the extension icon** on any tab to show the heading outline
+  panel for that page.
 - The panel lists all headings with their level, indented by depth.
 - **Green square** = correct heading order.
 - **Red octagon** = sequence error (e.g. h4 directly after h2) —
@@ -35,6 +36,9 @@ Built and maintained by [Quatico](https://www.quatico.com/) ·
 - **Click a heading** to scroll to it on the page with a highlight
   flash.
 - Click **Close** or the extension icon again to hide.
+- The panel is scoped to the tab you clicked on — navigating to a
+  new page does not reopen it automatically. Click the icon again
+  whenever you want to inspect a new page.
 
 ## Accessibility
 
@@ -48,11 +52,22 @@ The panel is built with screen reader users in mind:
 - Semantic HTML throughout (headings, lists, landmarks).
 - A visual legend explains the square / octagon distinction.
 
-## The `debugger` permission
+## Permissions
 
-The extension uses the `debugger` permission to fetch the accessibility
-tree via CDP. Chrome may show a "Debugger attached" banner; the
-debugger is detached immediately after fetching the tree.
+The manifest declares only the permissions actually used:
+
+- **`activeTab`** — access to the current tab, granted only when you
+  click the toolbar icon. No standing access to any page.
+- **`scripting`** — needed to inject the content script on demand
+  when you click the icon.
+- **`debugger`** — used solely to call
+  `Accessibility.getFullAXTree` via the Chrome DevTools Protocol.
+  The debugger is attached and detached on each activation. Chrome
+  may show a "Debugger attached" banner while the extension is
+  active.
+
+There are no `host_permissions`, no `storage` permission, no network
+calls, and no `<all_urls>` matches.
 
 **Tip:** Close DevTools before using the extension if you get
 attachment errors.

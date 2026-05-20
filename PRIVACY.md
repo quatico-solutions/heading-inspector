@@ -12,9 +12,10 @@ and does **not** include analytics, telemetry, or third-party tracking.
   `Accessibility.getFullAXTree`. The tree is processed in-memory in
   the extension's background service worker and content script.
   Nothing is sent off-device.
-- **Local storage.** The extension uses `chrome.storage` to remember
-  its on/off state across tabs and sessions. Stored data is limited
-  to UI preferences (a boolean flag) and lives only in your browser.
+- **`activeTab` access only.** The content script that renders the
+  outline panel is injected only on the active tab and only after
+  you click the toolbar icon. The extension has no standing access
+  to any page; access ends when you navigate away or close the tab.
 
 ## What the extension does not do
 
@@ -22,10 +23,9 @@ and does **not** include analytics, telemetry, or third-party tracking.
   activity to any server.
 - Does **not** include analytics, error reporting, telemetry, or
   third-party SDKs.
-- Does **not** read or modify cookies or other browser storage outside
-  its own `chrome.storage` namespace.
-- Does **not** persist any data across uninstall — removing the
-  extension removes its local storage.
+- Does **not** read or modify cookies or any browser storage. The
+  extension declares no `storage` permission and persists nothing
+  across activations.
 
 ## The `debugger` permission
 
