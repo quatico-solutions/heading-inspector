@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Heading sequence error — Heading Inspector example</title>
+</head>
+<body>
+
+<h1>Annual Report 2026</h1>
+
+<p>
+  This page is a fixture for the Heading Inspector extension. It
+  contains a deliberate heading sequence error: the document jumps
+  from an <code>h2</code> to an <code>h4</code>, skipping
+  <code>h3</code>. The extension panel should flag that level-4
+  heading as a sequence error.
+</p>
+
+<h2>Overview</h2>
+
+<p>
+  A short summary section. This <code>h2</code> follows the document
+  title's <code>h1</code> correctly: one level deeper, no skip.
+</p>
+
+<h2>Financials</h2>
+
+<p>
+  The next subsection is logically a level-3 subsection of
+  Financials, but it is marked up as an <code>h4</code>. That is the
+  sequence error.
+</p>
+
+<h4>Q1 Revenue</h4>
+
+<p>
+  Skipping from <code>h2</code> to <code>h4</code> breaks the
+  document outline for screen reader users navigating by heading
+  level: they will jump past a level that should announce the
+  grouping of these subsections.
+</p>
+
+<h3>Q2 Revenue</h3>
+
+<p>
+  This <code>h3</code> is at the correct level for a subsection of
+  Financials. Going back up from <code>h4</code> to <code>h3</code>
+  is not itself a sequence error — only skipping <em>down</em> past
+  a level is.
+</p>
+
+<h2>Conclusion</h2>
+
+<p>
+  Closing section. Back at <code>h2</code>, sibling of Overview and
+  Financials.
+</p>
+
+</body>
+</html>
