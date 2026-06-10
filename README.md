@@ -36,9 +36,13 @@ Built and maintained by [Quatico](https://www.quatico.com/) ·
 - **Click a heading** to scroll to it on the page with a highlight
   flash.
 - Click **Close** or the extension icon again to hide.
-- The panel is scoped to the tab you clicked on — navigating to a
-  new page does not reopen it automatically. Click the icon again
-  whenever you want to inspect a new page.
+- **Follows navigation within the same site.** Once you open the
+  panel on a tab it stays with you as you walk that site — following
+  links, submitting forms, or navigating a single-page app all
+  re-populate the outline for the new page automatically. Leaving the
+  site (a different origin) stops the follow, and the panel does not
+  reopen until you click the icon again on the new site. This keeps
+  the audit loop going without re-clicking on every page.
 
 ## Accessibility
 
@@ -59,15 +63,22 @@ The manifest declares only the permissions actually used:
 - **`activeTab`** — access to the current tab, granted only when you
   click the toolbar icon. No standing access to any page.
 - **`scripting`** — needed to inject the content script on demand
-  when you click the icon.
+  when you click the icon, and to re-inject it after you navigate
+  within the same site (`activeTab` access persists across same-origin
+  navigation).
 - **`debugger`** — used solely to call
   `Accessibility.getFullAXTree` via the Chrome DevTools Protocol.
   The debugger is attached and detached on each activation. Chrome
   may show a "Debugger attached" banner while the extension is
   active.
+- **`storage`** — uses `chrome.storage.session` (in-memory, cleared
+  when the browser closes, never synced) to remember which tabs have
+  the panel open so it can re-open after navigation. No page content
+  is stored.
 
-There are no `host_permissions`, no `storage` permission, no network
-calls, and no `<all_urls>` matches.
+There are no `host_permissions`, no network calls, and no `<all_urls>`
+matches. `activeTab` only grants access to a page after you click the
+icon, and only for as long as you stay on that origin.
 
 **Tip:** Close DevTools before using the extension if you get
 attachment errors.

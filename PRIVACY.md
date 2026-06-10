@@ -13,9 +13,19 @@ and does **not** include analytics, telemetry, or third-party tracking.
   the extension's background service worker and content script.
   Nothing is sent off-device.
 - **`activeTab` access only.** The content script that renders the
-  outline panel is injected only on the active tab and only after
-  you click the toolbar icon. The extension has no standing access
-  to any page; access ends when you navigate away or close the tab.
+  outline panel is injected only after you click the toolbar icon.
+  Chrome's `activeTab` grant covers the current tab for as long as you
+  stay on the same site (origin); it is revoked the moment you
+  navigate to a different site or close the tab. While you remain on
+  the same site, the extension re-reads the new page's headings so the
+  outline keeps up with your navigation. It never has standing access
+  to sites you have not explicitly activated it on.
+- **Session storage (tab state only).** The extension uses
+  `chrome.storage.session` to remember which tabs currently have the
+  panel open, so it can re-open the outline after you navigate within
+  a site. This holds tab identifiers only — never page content, URLs,
+  or AX-tree data. It is in-memory, never synced, and cleared when the
+  browser closes.
 
 ## What the extension does not do
 
@@ -23,19 +33,20 @@ and does **not** include analytics, telemetry, or third-party tracking.
   activity to any server.
 - Does **not** include analytics, error reporting, telemetry, or
   third-party SDKs.
-- Does **not** read or modify cookies or any browser storage. The
-  extension declares no `storage` permission and persists nothing
-  across activations.
+- Does **not** read or modify cookies, and stores no page content. The
+  only data it persists is the in-memory list of tabs with an open
+  panel (`chrome.storage.session`), cleared when the browser closes.
 
 ## The `debugger` permission
 
 The extension declares the `debugger` permission solely to attach to
 the active tab via CDP and call `Accessibility.getFullAXTree`. The
-debugger is attached and detached on each activation. Chrome shows a
-"Debugger attached" banner while the extension is active — this is a
-Chrome-enforced UI cue, not a sign of remote control. The extension
-does not attach to other tabs and does not retain a persistent
-debugger session.
+debugger is attached and detached on each activation, including each
+time the outline is refreshed after you navigate within a site. Chrome
+shows a "Debugger attached" banner while the extension is active — this
+is a Chrome-enforced UI cue, not a sign of remote control. The
+extension does not attach to other tabs and does not retain a
+persistent debugger session.
 
 ## Contact
 
