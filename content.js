@@ -375,6 +375,7 @@ function ensureHighlighter() {
 }
 
 function showPanel(html) {
+  startLocationWatch();
   createPanel((doc) => {
     doc.querySelector('[data-action="close"]')?.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "panelHidden" }).catch(() => {});
@@ -438,6 +439,7 @@ function run(axTree) {
 
 function hide() {
   resetTimers();
+  stopLocationWatch();
   document.body.style.marginRight = "";
   const c = document.getElementById(CONTAINER_ID);
   if (c) c.remove();
@@ -447,6 +449,56 @@ function hide() {
   highlighterEl = null;
   headingElements = [];
 }
+
+// Same-document (SPA) navigation: this content script survives pushState /
+// replaceState / popstate because the browser does not create a new document,
+// so the panel stays mounted. We refresh it when the route changes. A content
+// script lives in an isolated world and cannot intercept the page's own
+// history.pushState, so we watch the shared location.href instead — a low
+// frequency poll that runs only while the panel is open, plus a popstate
+// listener for immediate back/forward response. Full-document navigations are
+// handled by the background re-injecting on the new page (see background.js).
+let lastHref = location.href;
+let locationPollTimer = null;
+
+function panelIsOpen() {
+  return !!document.getElementById(CONTAINER_ID);
+}
+
+function refreshForSPANavigation() {
+  if (!panelIsOpen()) return;
+  runDOM(); // immediate loading state with the new page's DOM
+  chrome.runtime.sendMessage({ action: "requestTree" }).catch(() => {});
+}
+
+function startLocationWatch() {
+  lastHref = location.href;
+  if (locationPollTimer) return;
+  locationPollTimer = setInterval(() => {
+    if (!panelIsOpen()) {
+      stopLocationWatch();
+      return;
+    }
+    if (location.href !== lastHref) {
+      lastHref = location.href;
+      refreshForSPANavigation();
+    }
+  }, 500);
+}
+
+function stopLocationWatch() {
+  if (locationPollTimer) {
+    clearInterval(locationPollTimer);
+    locationPollTimer = null;
+  }
+}
+
+window.addEventListener("popstate", () => {
+  if (panelIsOpen() && location.href !== lastHref) {
+    lastHref = location.href;
+    refreshForSPANavigation();
+  }
+});
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || typeof msg.action !== "string") return;
